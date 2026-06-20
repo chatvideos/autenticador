@@ -59,8 +59,18 @@ function clearAppSession(res: any, req: any) {
 }
 
 function isAppAuthenticated(req: any): boolean {
+  // Parse cookies manually since cookie-parser middleware may not be registered
+  const cookieHeader = req.headers?.cookie ?? "";
   const cookies = req.cookies ?? {};
-  return cookies[APP_SESSION_COOKIE] === "authenticated";
+  // Try req.cookies first (if cookie-parser is present), then parse header manually
+  if (cookies[APP_SESSION_COOKIE] === "authenticated") return true;
+  // Manual parse fallback
+  const parsed: Record<string, string> = {};
+  String(cookieHeader).split(";").forEach(part => {
+    const [k, ...v] = part.trim().split("=");
+    if (k) parsed[k.trim()] = decodeURIComponent(v.join("="));
+  });
+  return parsed[APP_SESSION_COOKIE] === "authenticated";
 }
 
 // ── Router ───────────────────────────────────────────────────────────────────
