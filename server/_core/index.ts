@@ -66,3 +66,23 @@ async function startServer() {
 }
 
 startServer().catch(console.error);
+
+// Keep-alive: ping the server every 4 minutes to prevent Render free tier from sleeping
+if (process.env.NODE_ENV === "production") {
+  const RENDER_URL = process.env.RENDER_EXTERNAL_URL || "";
+  if (RENDER_URL) {
+    setInterval(async () => {
+      try {
+        const https = await import("https");
+        https.get(RENDER_URL + "/api/trpc/system.health", (res: any) => {
+          console.log(`[Keep-alive] Ping sent, status: ${res.statusCode}`);
+        }).on("error", (e: any) => {
+          console.log(`[Keep-alive] Ping failed: ${e.message}`);
+        });
+      } catch (e) {
+        // ignore
+      }
+    }, 4 * 60 * 1000); // every 4 minutes
+    console.log(`[Keep-alive] Enabled for ${RENDER_URL}`);
+  }
+}
