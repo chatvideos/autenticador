@@ -38,3 +38,9 @@
 - [x] Animações suaves nas interações
 - [x] Design responsivo mobile-first
 - [x] Ícones de serviços populares (Google, GitHub, etc.)
+
+## Importação do Google Authenticator
+- [x] Suporte ao formato otpauth-migration:// (exportação do Google Authenticator)
+- [x] Parser manual de protobuf para decodificar dados de exportação
+- [x] Importação em lote: selecionar/desmarcar contas individualmente
+- [x] Compatibilidade com QR codes padrão otpauth://totp/ e formato de migração
