@@ -158,9 +158,13 @@ export default function AddAccountModal({ onClose, onAdded }: AddAccountModalPro
   }, [tab]);
 
   const handleAddSingle = async (account: ImportedAccount) => {
-    await addMutation.mutateAsync({ name: account.name, secret: account.secret, issuer: account.issuer });
-    utils.totp.list.invalidate();
-    onAdded();
+    try {
+      await addMutation.mutateAsync({ name: account.name, secret: account.secret, issuer: account.issuer });
+      utils.totp.list.invalidate();
+      onAdded();
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao adicionar conta. Tente novamente.");
+    }
   };
 
   const handleAddMultiple = async () => {
@@ -182,9 +186,13 @@ export default function AddAccountModal({ onClose, onAdded }: AddAccountModalPro
   const handleAddManual = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualName.trim() || !manualSecret.trim()) return;
-    await addMutation.mutateAsync({ name: manualName.trim(), secret: manualSecret.trim(), issuer: manualIssuer.trim() || undefined });
-    utils.totp.list.invalidate();
-    onAdded();
+    try {
+      await addMutation.mutateAsync({ name: manualName.trim(), secret: manualSecret.trim(), issuer: manualIssuer.trim() || undefined });
+      utils.totp.list.invalidate();
+      onAdded();
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao adicionar conta. Tente novamente.");
+    }
   };
 
   const handlePasteUri = () => {
@@ -202,9 +210,13 @@ export default function AddAccountModal({ onClose, onAdded }: AddAccountModalPro
   const handleAddPasteResult = async () => {
     if (!pasteResult) return;
     if ("single" in pasteResult) {
-      await addMutation.mutateAsync({ name: pasteResult.single.name, secret: pasteResult.single.secret, issuer: pasteResult.single.issuer });
-      utils.totp.list.invalidate();
-      onAdded();
+      try {
+        await addMutation.mutateAsync({ name: pasteResult.single.name, secret: pasteResult.single.secret, issuer: pasteResult.single.issuer });
+        utils.totp.list.invalidate();
+        onAdded();
+      } catch (err: any) {
+        toast.error(err?.message || "Erro ao adicionar conta. Tente novamente.");
+      }
     } else {
       let added = 0;
       for (const account of pasteResult.multiple) {
