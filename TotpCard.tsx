@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import * as OTPAuth from "otpauth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Copy, Trash2, Check } from "lucide-react";
@@ -9,8 +10,10 @@ interface TotpAccount {
   name: string;
   issuer?: string | null;
   icon?: string | null;
-  code: string;
-  remaining: number;
+  secret: string;
+  sortOrder?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 interface TotpCardProps {
@@ -68,37 +71,42 @@ function formatCode(code: string): string {
   return code;
 }
 
+// Generate TOTP code locally using device clock
+function generateLocalTotp(secret: string): { code: string; remaining: number } {
+  try {
+    const totp = new OTPAuth.TOTP({
+      secret: OTPAuth.Secret.fromBase32(secret.toUpperCase().replace(/\s+/g, "")),
+      digits: 6,
+      period: 30,
+      algorithm: "SHA1",
+    });
+    const code = totp.generate();
+    const epoch = Math.floor(Date.now() / 1000);
+    const remaining = 30 - (epoch % 30);
+    return { code, remaining };
+  } catch {
+    return { code: "------", remaining: 30 };
+  }
+}
+
 export default function TotpCard({ account, onRemove }: TotpCardProps) {
   const [copied, setCopied] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [currentCode, setCurrentCode] = useState(account.code);
-  const [remaining, setRemaining] = useState(account.remaining);
+
+  // Generate code locally using device clock (same as Google Authenticator)
+  const getLocalCode = useCallback(() => generateLocalTotp(account.secret), [account.secret]);
+
+  const [{ code: currentCode, remaining }, setCodeState] = useState(() => getLocalCode());
+
+  // Update code every second using device clock
+  useEffect(() => {
+    const update = () => setCodeState(getLocalCode());
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [getLocalCode]);
 
   const utils = trpc.useUtils();
-
-  // Refresh code from server when timer hits 0
-  const refreshCode = useCallback(() => {
-    utils.totp.list.invalidate();
-  }, [utils]);
-
-  // Local countdown timer
-  useEffect(() => {
-    setCurrentCode(account.code);
-    setRemaining(account.remaining);
-  }, [account.code, account.remaining]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRemaining(prev => {
-        if (prev <= 1) {
-          refreshCode();
-          return 30;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [refreshCode]);
 
   const removeMutation = trpc.totp.remove.useMutation({
     onSuccess: () => {
