@@ -116,15 +116,9 @@ export const appRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       const accounts = await listTotpAccounts();
-      // Generate current codes for each account
-      return accounts.map(acc => {
-        try {
-          const { code, remaining } = generateTotpCode(acc.secret);
-          return { ...acc, code, remaining };
-        } catch {
-          return { ...acc, code: "------", remaining: 30 };
-        }
-      });
+      // Return accounts with secret so frontend can generate codes locally
+      // (frontend uses device clock = same as Google Authenticator)
+      return accounts.map(acc => ({ ...acc }));
     }),
 
     add: publicProcedure
